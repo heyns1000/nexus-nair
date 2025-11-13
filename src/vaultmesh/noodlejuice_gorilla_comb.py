@@ -8,7 +8,7 @@ Part of the 5-Layer FCU Full Stack™
 import time
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any
 
 class VaultMesh:
@@ -29,7 +29,7 @@ class VaultMesh:
         Returns current system status
         """
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "pulse_interval": f"{self.pulse_interval}s",
             "status": "ACTIVE",
             "vortex": self.vortex_status,
@@ -61,7 +61,7 @@ class VaultMesh:
             "pebble_id": pebble_id,
             "codex_hash": codex_hash,
             "status": "Below the Seed",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     
     def generate_pebble_id(self, brand_name: str, brand_id: int) -> str:
@@ -105,7 +105,7 @@ class VaultMesh:
             "r2_bucket": "hotstack-bucket",
             "r2_path": "repos/nexus-nair/",
             "mirror_status": "LIVE",
-            "last_sync": datetime.utcnow().isoformat(),
+            "last_sync": datetime.now(timezone.utc).isoformat(),
             "sync_interval": f"{self.pulse_interval}s"
         }
     
