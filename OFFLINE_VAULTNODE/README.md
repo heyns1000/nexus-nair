@@ -10,6 +10,37 @@ Offline VaultNode™ is a planned feature for 2026 that will enable NEXUS_NAIR t
 
 **IN DEVELOPMENT** - Preview Available 2026
 
+## Demo Scripts
+
+### Starlink Orbital 40D Warehouse™ Provisioning
+
+The repository includes a demonstration script for simulating orbital warehouse provisioning:
+
+```bash
+python3 OFFLINE_VAULTNODE/starlink_orbital_provisioning.py
+```
+
+**Features:**
+- Simulates VaultPay data block synchronization to Starlink Gen2 LEO satellites
+- Generates 617 deterministic PEBBLE LATTICE™ hashes for VaultPay files (201-817)
+- Demonstrates Sovereign Tier priority etching on Inter-Satellite Links (ISLs)
+- Mock API integration with Starlink infrastructure
+- Reports latency metrics (<50ms LEO mesh)
+
+**Output:**
+```
+[HH:MM:SS] STARLINK ORBITAL PROVISIONING STARTED...
+🛰️ Target: Starlink Gen2 Shell (Phase 3 Integration)
+
+═════════════════════════════════════════════════════════════════
+✅ ORBITAL 40D WAREHOUSE™ LAUNCH COMPLETE
+🛰️ Status: ORBITAL_PROVISIONED (/40D/ORBITAL_WAREHOUSE_GEN2)
+🔗 Latency Confirmed: <XXms (LEO Mesh)
+🔒 Sovereign Sync: XXX Sovereign Blocks Etched to Orbit.
+🌐 Infrastructure Layer 3: Verified for Zero-Inventory Logistics.
+═════════════════════════════════════════════════════════════════
+```
+
 ## Planned Features
 
 ### Core Capabilities
