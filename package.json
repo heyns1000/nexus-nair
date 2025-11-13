@@ -1,13 +1,15 @@
 {
   "name": "nexus-nair",
   "version": "1.0.0",
+  "type": "module",
   "description": "NEXUS_NAIR: 5-Layer FCU Stack with 13,713 brands",
   "main": "src/index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "jest"
+    "test": "node test/test.js",
+    "demo": "node demo.js"
   },
   "keywords": ["nexus", "fcu-stack", "vault-chain", "gorilla-codex", "pulsetrade"],
   "author": "",
