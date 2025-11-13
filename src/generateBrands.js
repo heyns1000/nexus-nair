@@ -44,19 +44,26 @@ function generateBrand(index) {
   const name = generateBrandName(index);
   const adjective = ADJECTIVES[index % ADJECTIVES.length];
   
+  // Use deterministic generation based on index for reproducibility
+  // This is sample data generation, not cryptographic use
+  const valueHash = (index * 7919) % 10000000;
+  const employeeHash = (index * 3571) % 5000;
+  const ratingHash = (index * 2111) % 150;
+  const timeHash = (index * 8191) % (365 * 24 * 60 * 60 * 1000);
+  
   return {
     id: `BRAND_${String(index + 1).padStart(5, '0')}`,
     name: name,
     category: category,
     description: `${adjective} ${category.toLowerCase()} company providing innovative solutions`,
     status: 'ACTIVE',
-    value: Math.floor(Math.random() * 10000000) + 100000,
+    value: valueHash + 100000,
     founded: 2000 + (index % 24),
-    employees: Math.floor(Math.random() * 5000) + 10,
+    employees: employeeHash + 10,
     region: ['North America', 'Europe', 'Asia', 'South America', 'Africa'][index % 5],
     verified: true,
-    rating: (3.5 + Math.random() * 1.5).toFixed(1),
-    createdAt: Date.now() - (Math.random() * 365 * 24 * 60 * 60 * 1000),
+    rating: (3.5 + (ratingHash / 100)).toFixed(1),
+    createdAt: Date.now() - timeHash,
     tags: [
       category.toLowerCase().replace(/\s+/g, '-'),
       adjective.toLowerCase(),
