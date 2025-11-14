@@ -1,0 +1,78 @@
+name: Validate OpenAPI Specification
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'docs/openapi.yaml'
+      - 'docs/.spectral.yaml'
+      - '.github/workflows/validate-openapi.yml'
+  pull_request:
+    paths:
+      - 'docs/openapi.yaml'
+      - 'docs/.spectral.yaml'
+      - '.github/workflows/validate-openapi.yml'
+
+jobs:
+  validate-and-build:
+    name: Validate OpenAPI and Build Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Spectral CLI
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Install Redocly CLI
+        run: npm install -g @redocly/cli
+
+      - name: Lint OpenAPI specification with Spectral
+        run: |
+          echo "Running Spectral linter on OpenAPI specification..."
+          spectral lint docs/openapi.yaml --ruleset docs/.spectral.yaml --format stylish
+        continue-on-error: false
+
+      - name: Build HTML documentation with Redocly
+        run: |
+          echo "Building static HTML documentation..."
+          redocly build-docs docs/openapi.yaml -o docs/openapi.html
+          echo "Documentation built successfully at docs/openapi.html"
+
+      - name: Upload HTML documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-documentation
+          path: docs/openapi.html
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Validation summary
+        if: success()
+        run: |
+          echo "✅ OpenAPI validation completed successfully!"
+          echo ""
+          echo "📄 Generated artifacts:"
+          echo "  - OpenAPI HTML documentation (docs/openapi.html)"
+          echo ""
+          echo "💡 To download the HTML documentation:"
+          echo "  1. Go to the Actions tab in GitHub"
+          echo "  2. Click on this workflow run"
+          echo "  3. Download the 'openapi-documentation' artifact"

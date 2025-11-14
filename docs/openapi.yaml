@@ -1,0 +1,501 @@
+openapi: 3.0.3
+info:
+  title: Nexus Nair API
+  version: 1.0.0
+  description: |
+    API documentation for Nexus Nair - a 5-Layer FCU Stack platform.
+    This specification provides example endpoints for authentication, user management, and item operations.
+  contact:
+    name: Nexus Nair Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://api.example.com
+    description: Production API server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login endpoint
+    
+    apiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for service-to-service authentication
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: INVALID_CREDENTIALS
+            message:
+              type: string
+              description: Human-readable error message
+              example: The provided credentials are invalid
+            details:
+              type: object
+              description: Additional error details (optional)
+              additionalProperties: true
+            timestamp:
+              type: string
+              format: date-time
+              description: ISO 8601 timestamp when the error occurred
+              example: "2023-11-14T20:22:21.054Z"
+            requestId:
+              type: string
+              description: Unique request identifier for tracking
+              example: req_abc123xyz
+      example:
+        error:
+          code: VALIDATION_ERROR
+          message: Request validation failed
+          details:
+            field: email
+            reason: Invalid email format
+          timestamp: "2023-11-14T20:22:21.054Z"
+          requestId: req_abc123xyz
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT authentication token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expiresIn:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: usr_123abc
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          example: John Doe
+        role:
+          type: string
+          enum: [admin, user, guest]
+          example: user
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-15T10:30:00Z"
+
+    Item:
+      type: object
+      required:
+        - name
+      properties:
+        id:
+          type: string
+          readOnly: true
+          example: item_456def
+        name:
+          type: string
+          example: Sample Item
+        description:
+          type: string
+          example: This is a sample item
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          example: active
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2023-02-20T14:15:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2023-02-20T14:15:00Z"
+
+    ItemCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: New Item
+        description:
+          type: string
+          maxLength: 1000
+          example: Description of the new item
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+          example: active
+
+    ItemList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            perPage:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 150
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user
+      description: Authenticates a user with email and password, returning a JWT token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              validLogin:
+                summary: Valid login credentials
+                value:
+                  email: user@example.com
+                  password: SecurePassword123
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              examples:
+                success:
+                  summary: Successful authentication
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMTIzYWJjIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+                    expiresIn: 3600
+                    user:
+                      id: usr_123abc
+                      email: user@example.com
+                      name: John Doe
+                      role: user
+                      createdAt: "2023-01-15T10:30:00Z"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidCredentials:
+                  summary: Invalid email or password
+                  value:
+                    error:
+                      code: INVALID_CREDENTIALS
+                      message: The provided credentials are invalid
+                      timestamp: "2023-11-14T20:22:21.054Z"
+                      requestId: req_login_001
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validationError:
+                  summary: Invalid request format
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Request validation failed
+                      details:
+                        email: Invalid email format
+                      timestamp: "2023-11-14T20:22:21.054Z"
+                      requestId: req_login_002
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      description: Retrieves detailed information about a specific user
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique user identifier
+          schema:
+            type: string
+          example: usr_123abc
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples:
+                userFound:
+                  summary: Successful user retrieval
+                  value:
+                    id: usr_123abc
+                    email: user@example.com
+                    name: John Doe
+                    role: user
+                    createdAt: "2023-01-15T10:30:00Z"
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                unauthorized:
+                  summary: Missing or invalid authentication
+                  value:
+                    error:
+                      code: UNAUTHORIZED
+                      message: Authentication required
+                      timestamp: "2023-11-14T20:22:21.054Z"
+                      requestId: req_user_001
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  summary: User does not exist
+                  value:
+                    error:
+                      code: NOT_FOUND
+                      message: User not found
+                      details:
+                        userId: usr_123abc
+                      timestamp: "2023-11-14T20:22:21.054Z"
+                      requestId: req_user_002
+
+  /items:
+    get:
+      summary: List items
+      description: Retrieves a paginated list of items
+      tags:
+        - Items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: perPage
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+        - name: status
+          in: query
+          description: Filter by item status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+          example: active
+      responses:
+        '200':
+          description: List of items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemList'
+              examples:
+                itemList:
+                  summary: Successful items retrieval
+                  value:
+                    items:
+                      - id: item_456def
+                        name: Sample Item 1
+                        description: First sample item
+                        status: active
+                        createdAt: "2023-02-20T14:15:00Z"
+                        updatedAt: "2023-02-20T14:15:00Z"
+                      - id: item_789ghi
+                        name: Sample Item 2
+                        description: Second sample item
+                        status: active
+                        createdAt: "2023-03-10T09:30:00Z"
+                        updatedAt: "2023-03-10T09:30:00Z"
+                    pagination:
+                      page: 1
+                      perPage: 20
+                      total: 150
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create item
+      description: Creates a new item
+      tags:
+        - Items
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemCreateRequest'
+            examples:
+              newItem:
+                summary: Create a new item
+                value:
+                  name: New Item
+                  description: This is a new item
+                  status: active
+      responses:
+        '201':
+          description: Item created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+              examples:
+                itemCreated:
+                  summary: Successfully created item
+                  value:
+                    id: item_new123
+                    name: New Item
+                    description: This is a new item
+                    status: active
+                    createdAt: "2023-11-14T20:22:21.054Z"
+                    updatedAt: "2023-11-14T20:22:21.054Z"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validationError:
+                  summary: Invalid item data
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Request validation failed
+                      details:
+                        name: Name is required
+                      timestamp: "2023-11-14T20:22:21.054Z"
+                      requestId: req_item_001
+
+  /items/{id}:
+    delete:
+      summary: Delete item
+      description: Deletes an item by ID
+      tags:
+        - Items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique item identifier
+          schema:
+            type: string
+          example: item_456def
+      responses:
+        '204':
+          description: Item deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  summary: Item does not exist
+                  value:
+                    error:
+                      code: NOT_FOUND
+                      message: Item not found
+                      details:
+                        itemId: item_456def
+                      timestamp: "2023-11-14T20:22:21.054Z"
+                      requestId: req_item_002
