@@ -20,6 +20,10 @@ jobs:
     name: Generate Cross-Repository Heatmap
     runs-on: ubuntu-latest
     
+    # Limit permissions to minimum required
+    permissions:
+      contents: read
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
