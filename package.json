@@ -9,12 +9,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node test/test.js",
-    "demo": "node demo.js"
+    "demo": "node demo.js",
+    "generate-heatmap": "node scripts/heatmap/generate_heatmap.cjs"
   },
   "keywords": ["nexus", "fcu-stack", "vault-chain", "gorilla-codex", "pulsetrade"],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
