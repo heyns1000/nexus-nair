@@ -4,9 +4,13 @@
  * Fetches repository metadata from GitHub API and generates cross-repository relationship heatmap
  */
 
-const { Octokit } = require('@octokit/rest');
-const fs = require('fs');
-const path = require('path');
+import { Octokit } from '@octokit/rest';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Language to emoji mapping
 const LANGUAGE_EMOJI = {
@@ -516,8 +520,9 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   main();
 }
 
-module.exports = { HeatmapGenerator };
+export { HeatmapGenerator };
