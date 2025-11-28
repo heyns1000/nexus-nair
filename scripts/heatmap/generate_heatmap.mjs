@@ -168,11 +168,11 @@ class HeatmapGenerator {
         
         return deps;
       }
+      return new Set();
     } catch (error) {
       // package.json might not exist or be inaccessible
       return new Set();
     }
-    return new Set();
   }
 
   /**
@@ -520,7 +520,7 @@ async function main() {
 }
 
 // Run if called directly
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+const isMainModule = fileURLToPath(import.meta.url) === process.argv[1];
 if (isMainModule) {
   main();
 }
