@@ -521,8 +521,13 @@ async function main() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+// In ESM, check if this module is the main module by comparing resolved paths
+if (process.argv[1]) {
+  const mainModulePath = fileURLToPath(import.meta.url);
+  const runningScriptPath = path.resolve(process.argv[1]);
+  if (mainModulePath === runningScriptPath) {
+    main();
+  }
 }
 
 export { HeatmapGenerator };
