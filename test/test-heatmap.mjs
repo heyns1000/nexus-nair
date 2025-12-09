@@ -3,7 +3,7 @@
  * Tests the core logic without making real API calls
  */
 
-const { HeatmapGenerator } = require('../scripts/heatmap/generate_heatmap.cjs');
+import { HeatmapGenerator } from '../scripts/heatmap/generate_heatmap.mjs';
 
 // Mock test data
 const mockRepos = [
