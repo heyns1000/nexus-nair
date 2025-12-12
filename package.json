@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "node test/test.js",
     "demo": "node demo.js",
+    "generate-heatmap": "node scripts/heatmap/generate_heatmap.cjs"
     "generate-heatmap": "node scripts/heatmap/generate_heatmap.mjs"
   },
   "keywords": ["nexus", "fcu-stack", "vault-chain", "gorilla-codex", "pulsetrade"],
