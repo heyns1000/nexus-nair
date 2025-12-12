@@ -1,12 +1,11 @@
 name: Generate Repository Heatmap
 
-# Run on manual trigger or nightly schedule
 on:
-  # Allow manual workflow dispatch with optional owner input
+  # Allow manual trigger with custom owner input
   workflow_dispatch:
     inputs:
       owner:
-        description: 'GitHub owner/organization to analyze'
+        description: 'GitHub repository owner'
         required: false
         default: 'heyns1000'
         type: string
@@ -17,10 +16,8 @@ on:
 
 jobs:
   generate-heatmap:
-    name: Generate Cross-Repository Heatmap
     runs-on: ubuntu-latest
     
-    # Limit permissions to minimum required
     permissions:
       contents: read
     
@@ -31,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
@@ -40,29 +37,12 @@ jobs:
       - name: Generate heatmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: ${{ github.event.inputs.owner || 'heyns1000' }}
+          OWNER: ${{ inputs.owner || 'heyns1000' }}
         run: npm run generate-heatmap
       
       - name: Upload heatmap artifact
         uses: actions/upload-artifact@v4
         with:
-          name: heatmap-${{ github.event.inputs.owner || 'heyns1000' }}
-          path: data/heatmap-*.json
-          retention-days: 30
-          if-no-files-found: error
-      
-      - name: Display summary
-        if: always()
-        run: |
-          echo "### Heatmap Generation Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f "data/heatmap-${{ github.event.inputs.owner || 'heyns1000' }}.json" ]; then
-            echo "✅ Heatmap generated successfully" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Owner:** ${{ github.event.inputs.owner || 'heyns1000' }}" >> $GITHUB_STEP_SUMMARY
-            echo "**File:** data/heatmap-${{ github.event.inputs.owner || 'heyns1000' }}.json" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Download the artifact from the workflow run to access the generated heatmap data." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Heatmap generation failed" >> $GITHUB_STEP_SUMMARY
-          fi
+          name: heatmap-${{ inputs.owner || 'heyns1000' }}
+          path: data/heatmap-${{ inputs.owner || 'heyns1000' }}.json
+          retention-days: 90
