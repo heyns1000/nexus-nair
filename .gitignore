@@ -1,5 +1,19 @@
 # Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Production builds
+dist/
+build/
+.next/
+out/
+
+# Environment variables
+.env
 .pnp
 .pnp.js
 
@@ -17,6 +31,7 @@ dist/
 .env.test.local
 .env.production.local
 
+# IDE and editors
 # Logs
 npm-debug.log*
 yarn-debug.log*
@@ -29,6 +44,41 @@ pnpm-debug.log*
 *.swp
 *.swo
 *~
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database
+*.sqlite
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# R2 and Cloudflare
+.wrangler/
+
+# Replit
+.replit.nix
+.config/
 
 # Temporary files
 /tmp/
@@ -36,3 +86,7 @@ pnpm-debug.log*
 
 # Build artifacts
 brands-data.json
+
+# Generated heatmap data
+data/heatmap-*.json
+github/

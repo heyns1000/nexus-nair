@@ -1,0 +1,22 @@
+extends: spectral:oas
+
+rules:
+  # Disable operationId requirement to allow incremental adoption
+  operation-operationId: off
+  
+  # Ensure all operations have tags for organization
+  operation-tags: warn
+  
+  # Ensure operations have descriptions
+  operation-description: warn
+  
+  # Ensure all parameters have descriptions
+  operation-parameters: warn
+  
+  # Keep default OpenAPI rules enabled
+  # These enforce basic OpenAPI spec compliance:
+  # - Valid OpenAPI version
+  # - Required info fields
+  # - Valid paths and operations
+  # - Valid component schemas
+  # - Valid security definitions
