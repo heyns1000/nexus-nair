@@ -1,0 +1,109 @@
+{
+  "total_brands": 13713,
+  "sample_count": 10,
+  "achievement": "152.4%",
+  "brands": [
+    {
+      "brand_name": "TechCorp Solutions",
+      "brand_id": 1,
+      "verified": true,
+      "pebble_id": "PBL-6D5E4193-00001",
+      "codex_hash": "1bf5f54aa642c0974a8b5432647d63d5008d590c66454b4c61e12adbb2472511",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145240+00:00",
+      "category": "Technology"
+    },
+    {
+      "brand_name": "FashionForward Inc",
+      "brand_id": 2,
+      "verified": true,
+      "pebble_id": "PBL-D12810BC-00002",
+      "codex_hash": "c9d9622a0ecd2a6a9e39af7fa8f4062b93afc1f0898557d958890e56449521f6",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145326+00:00",
+      "category": "Fashion"
+    },
+    {
+      "brand_name": "HealthFirst Medical",
+      "brand_id": 3,
+      "verified": true,
+      "pebble_id": "PBL-E0BB69B0-00003",
+      "codex_hash": "9a38ec6ce21189b1085cdea5e0f9a56ac2656808eae47a835f094264bbfa8ebe",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145371+00:00",
+      "category": "Healthcare"
+    },
+    {
+      "brand_name": "AutoDrive Motors",
+      "brand_id": 4,
+      "verified": true,
+      "pebble_id": "PBL-F69ABD56-00004",
+      "codex_hash": "9785ba08708b3d418651ad53e4959fac6e0eba192aa7413837bafd725ff4090a",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145408+00:00",
+      "category": "Automotive"
+    },
+    {
+      "brand_name": "FoodDelight Co",
+      "brand_id": 5,
+      "verified": true,
+      "pebble_id": "PBL-E3860AAD-00005",
+      "codex_hash": "cce08d3af4d469685bcd5658532551b2646457f94c738eb9d3cc428dfbee2a0c",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145433+00:00",
+      "category": "Food & Beverage"
+    },
+    {
+      "brand_name": "RetailPro Systems",
+      "brand_id": 542,
+      "verified": true,
+      "pebble_id": "PBL-F436BE5D-00542",
+      "codex_hash": "5785c063514651e87cf414d319211e221260e067bd426cc2f85eeb000b953fe7",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145460+00:00",
+      "category": "Retail"
+    },
+    {
+      "brand_name": "GameStudio Elite",
+      "brand_id": 1337,
+      "verified": true,
+      "pebble_id": "PBL-DD861D8B-01337",
+      "codex_hash": "0ef125c824544ea42deeefe807e17da6562a2901f05b62e04752df05e192c836",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145494+00:00",
+      "category": "Entertainment"
+    },
+    {
+      "brand_name": "FinanceSecure Bank",
+      "brand_id": 2048,
+      "verified": true,
+      "pebble_id": "PBL-D5FAB456-02048",
+      "codex_hash": "1af09206152596e97ffbaba549811fff094fcdcf826da0f4189a0c9df795a892",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145530+00:00",
+      "category": "Financial"
+    },
+    {
+      "brand_name": "TravelExplore Agency",
+      "brand_id": 4096,
+      "verified": true,
+      "pebble_id": "PBL-93759990-04096",
+      "codex_hash": "890f45cf14047cec886ff8b387db6fbd32a8fe1618fdd8d7206c3cbe6330617c",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145581+00:00",
+      "category": "Travel"
+    },
+    {
+      "brand_name": "IndustrialWorks Ltd",
+      "brand_id": 8192,
+      "verified": true,
+      "pebble_id": "PBL-427B047F-08192",
+      "codex_hash": "7aa3845edab008fce7fd9f01ff90c3865807f629dad1be14a637e65ea66ffd5a",
+      "status": "Below the Seed",
+      "timestamp": "2025-11-13T12:50:01.145630+00:00",
+      "category": "Industrial"
+    }
+  ],
+  "system": "PEBBLE LATTICE\u2122",
+  "status": "Below the Seed"
+}
