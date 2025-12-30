@@ -1,523 +1,588 @@
 #!/usr/bin/env node
+
 /**
- * NEXUS_NAIR Heatmap Generator
- * Fetches repository metadata from GitHub API and generates cross-repository relationship heatmap
+ * Cross-Repository Heatmap Generator
+ * 
+ * Fetches repository metadata from GitHub API and computes a cross-repository
+ * relationship heatmap based on shared contributors, topics, and dependencies.
+ * 
+ * Environment Variables:
+ *   OWNER - GitHub owner/org to analyze (default: "heyns1000")
+ *   GITHUB_TOKEN - GitHub personal access token (optional but recommended)
+ * 
+ * Output: data/heatmap-heyns1000.json
  */
 
 const { Octokit } = require('@octokit/rest');
 const fs = require('fs');
 const path = require('path');
 
+// Configuration
+const OWNER = process.env.OWNER || 'heyns1000';
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const OUTPUT_DIR = path.join(__dirname, '../../data');
+const OUTPUT_FILE = path.join(OUTPUT_DIR, `heatmap-${OWNER}.json`);
+
 // Language to emoji mapping
-const LANGUAGE_EMOJI = {
+const LANGUAGE_EMOJI_MAP = {
   'JavaScript': '🟨',
   'TypeScript': '🔷',
   'Python': '🐍',
   'Java': '☕',
   'Go': '🐹',
-  'Rust': '🦀',
-  'PHP': '🐘',
   'Ruby': '💎',
+  'PHP': '🐘',
   'C++': '⚙️',
-  'C': '🔧',
   'C#': '🎯',
+  'C': '🔧',
+  'Rust': '🦀',
+  'Swift': '🦅',
+  'Kotlin': '🅺',
   'HTML': '🌐',
   'CSS': '🎨',
   'Shell': '🐚',
-  'Swift': '🦅',
-  'Kotlin': '🅺',
-  'Dart': '🎯',
-  'R': '📊',
-  'Scala': '⚡',
-  'Objective-C': '🍎',
+  'Dockerfile': '🐳',
+  'Vue': '💚',
+  'React': '⚛️',
+  'Angular': '🅰️'
 };
 
-const DEFAULT_EMOJI = '📦';
+// Initialize Octokit
+const octokit = new Octokit({
+  auth: GITHUB_TOKEN,
+  userAgent: 'nexus-nair-heatmap-generator/1.0.0'
+});
 
-// Weight configuration for heatmap strength calculation
-const WEIGHTS = {
-  sharedContributors: 0.6,
-  sharedTopics: 0.3,
-  dependencyLink: 0.1,
-};
+/**
+ * Log with timestamp
+ */
+function log(message) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+}
 
-class HeatmapGenerator {
-  constructor(owner, token) {
-    this.owner = owner || 'heyns1000';
-    this.octokit = new Octokit({
-      auth: token,
-    });
-    this.repos = [];
-    this.repoMetadata = new Map();
-  }
-
-  /**
-   * Fetch all repositories for the owner
-   */
-  async fetchRepositories() {
-    console.log(`Fetching repositories for owner: ${this.owner}...`);
-    
-    try {
-      const repos = [];
-      let page = 1;
-      const perPage = 100;
-      
-      while (true) {
-        const response = await this.octokit.repos.listForUser({
-          username: this.owner,
-          per_page: perPage,
-          page: page,
-          sort: 'updated',
-        });
-        
-        repos.push(...response.data);
-        
-        if (response.data.length < perPage) {
-          break;
-        }
-        page++;
-      }
-      
-      this.repos = repos;
-      console.log(`Found ${repos.length} repositories`);
-      return repos;
-    } catch (error) {
-      console.error('Error fetching repositories:', error.message);
-      if (error.status === 403) {
-        console.warn('Rate limit may be exceeded. Consider providing a GITHUB_TOKEN.');
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Fetch contributors for a repository
-   */
-  async fetchContributors(repo) {
-    try {
-      const contributors = [];
-      let page = 1;
-      const perPage = 100;
-      
-      while (true) {
-        const response = await this.octokit.repos.listContributors({
-          owner: this.owner,
-          repo: repo.name,
-          per_page: perPage,
-          page: page,
-        });
-        
-        contributors.push(...response.data.map(c => c.login));
-        
-        if (response.data.length < perPage) {
-          break;
-        }
-        page++;
-      }
-      
-      return new Set(contributors);
-    } catch (error) {
-      console.warn(`Could not fetch contributors for ${repo.name}:`, error.message);
-      return new Set();
-    }
-  }
-
-  /**
-   * Fetch topics for a repository
-   */
-  async fetchTopics(repo) {
-    try {
-      const response = await this.octokit.repos.getAllTopics({
-        owner: this.owner,
-        repo: repo.name,
-      });
-      return new Set(response.data.names || []);
-    } catch (error) {
-      console.warn(`Could not fetch topics for ${repo.name}:`, error.message);
-      return new Set();
-    }
-  }
-
-  /**
-   * Try to fetch package.json to detect dependencies
-   */
-  async fetchDependencies(repo) {
-    try {
-      const response = await this.octokit.repos.getContent({
-        owner: this.owner,
-        repo: repo.name,
-        path: 'package.json',
-      });
-      
-      if (response.data.content) {
-        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-        const pkg = JSON.parse(content);
-        const deps = new Set();
-        
-        // Collect all dependencies
-        if (pkg.dependencies) {
-          Object.keys(pkg.dependencies).forEach(dep => deps.add(dep));
-        }
-        if (pkg.devDependencies) {
-          Object.keys(pkg.devDependencies).forEach(dep => deps.add(dep));
-        }
-        
-        return deps;
-      }
-    } catch (error) {
-      // package.json might not exist or be inaccessible
-      return new Set();
-    }
-    return new Set();
-  }
-
-  /**
-   * Fetch metadata for all repositories
-   */
-  async fetchAllMetadata() {
-    console.log('Fetching metadata for all repositories...');
-    
-    for (const repo of this.repos) {
-      console.log(`  Processing ${repo.name}...`);
-      
-      const [contributors, topics, dependencies] = await Promise.all([
-        this.fetchContributors(repo),
-        this.fetchTopics(repo),
-        this.fetchDependencies(repo),
-      ]);
-      
-      this.repoMetadata.set(repo.full_name, {
-        repo,
-        contributors,
-        topics,
-        dependencies,
-        language: repo.language || 'Unknown',
-      });
-    }
-    
-    console.log('Metadata fetching complete');
-  }
-
-  /**
-   * Calculate relationship strength between two repositories
-   */
-  calculateStrength(repo1Meta, repo2Meta) {
-    // Shared contributors score
-    const sharedContributors = this.setIntersection(
-      repo1Meta.contributors,
-      repo2Meta.contributors
-    );
-    const maxContributors = Math.max(
-      repo1Meta.contributors.size,
-      repo2Meta.contributors.size
-    );
-    const contributorScore = maxContributors > 0
-      ? sharedContributors.size / maxContributors
-      : 0;
-    
-    // Shared topics score
-    const sharedTopics = this.setIntersection(
-      repo1Meta.topics,
-      repo2Meta.topics
-    );
-    const maxTopics = Math.max(
-      repo1Meta.topics.size,
-      repo2Meta.topics.size
-    );
-    const topicScore = maxTopics > 0
-      ? sharedTopics.size / maxTopics
-      : 0;
-    
-    // Dependency link score (does one depend on the other?)
-    let dependencyScore = 0;
-    const repo1Name = repo1Meta.repo.name;
-    const repo2Name = repo2Meta.repo.name;
-    
-    if (repo1Meta.dependencies.has(repo2Name) || repo2Meta.dependencies.has(repo1Name)) {
-      dependencyScore = 1;
-    }
-    
-    // Weighted sum
-    const rawScore = (
-      contributorScore * WEIGHTS.sharedContributors +
-      topicScore * WEIGHTS.sharedTopics +
-      dependencyScore * WEIGHTS.dependencyLink
-    );
-    
-    return rawScore;
-  }
-
-  /**
-   * Set intersection helper
-   */
-  setIntersection(set1, set2) {
-    const intersection = new Set();
-    for (const item of set1) {
-      if (set2.has(item)) {
-        intersection.add(item);
-      }
-    }
-    return intersection;
-  }
-
-  /**
-   * Compute heatmap matrix with all relationships
-   */
-  computeHeatmap() {
-    console.log('Computing heatmap matrix...');
-    
-    const matrix = {};
-    const rawScores = [];
-    const repoIds = Array.from(this.repoMetadata.keys());
-    
-    // Calculate all pairwise relationships
-    for (let i = 0; i < repoIds.length; i++) {
-      const sourceId = repoIds[i];
-      const sourceMeta = this.repoMetadata.get(sourceId);
-      matrix[sourceId] = {};
-      
-      for (let j = 0; j < repoIds.length; j++) {
-        if (i === j) continue; // Skip self-relationships
-        
-        const targetId = repoIds[j];
-        const targetMeta = this.repoMetadata.get(targetId);
-        
-        const rawScore = this.calculateStrength(sourceMeta, targetMeta);
-        rawScores.push(rawScore);
-        
-        matrix[sourceId][targetId] = {
-          rawScore,
-          sourceId,
-          targetId,
-        };
-      }
-    }
-    
-    // Find max score for normalization
-    const maxScore = Math.max(...rawScores, 0.001); // Avoid division by zero
-    
-    // Normalize scores to 0-100 and add additional fields
-    for (const sourceId of repoIds) {
-      for (const targetId of Object.keys(matrix[sourceId])) {
-        const cell = matrix[sourceId][targetId];
-        const normalizedStrength = Math.round((cell.rawScore / maxScore) * 100);
-        
-        cell.strength = normalizedStrength;
-        cell.type = 'repo-correlation';
-        cell.bidirectional = true;
-        
-        // Calculate additional metrics (simplified heuristics)
-        cell.integrationPotential = Math.min(100, normalizedStrength + 20);
-        cell.strategicValue = Math.round(normalizedStrength * 0.8);
-        cell.operationalSynergy = Math.round(normalizedStrength * 0.9);
-        
-        // Remove rawScore from final output
-        delete cell.rawScore;
-      }
-    }
-    
-    console.log('Heatmap matrix computed');
-    return matrix;
-  }
-
-  /**
-   * Compute sector data (one sector per repository)
-   */
-  computeSectors() {
-    console.log('Computing sectors...');
-    
-    const sectors = [];
-    
-    for (const [repoId, meta] of this.repoMetadata.entries()) {
-      const emoji = LANGUAGE_EMOJI[meta.language] || DEFAULT_EMOJI;
-      
-      sectors.push({
-        id: repoId,
-        name: meta.repo.name,
-        emoji: emoji,
-        influence: 0, // Will be computed later
-        brandCount: 0,
-        totalElements: 0,
-      });
-    }
-    
-    return sectors;
-  }
-
-  /**
-   * Compute influence scores for each sector
-   */
-  computeInfluence(matrix, sectors) {
-    console.log('Computing influence scores...');
-    
-    const influenceScores = {};
-    
-    for (const sector of sectors) {
-      const sourceId = sector.id;
-      const row = matrix[sourceId] || {};
-      
-      // Sum of all outgoing strengths
-      const totalStrength = Object.values(row).reduce((sum, cell) => sum + cell.strength, 0);
-      influenceScores[sourceId] = totalStrength;
-    }
-    
-    // Find max influence for normalization
-    const maxInfluence = Math.max(...Object.values(influenceScores), 1);
-    
-    // Normalize to 0-100 and update sectors
-    for (const sector of sectors) {
-      const rawInfluence = influenceScores[sector.id] || 0;
-      sector.influence = Math.round((rawInfluence / maxInfluence) * 100);
-    }
-    
-    console.log('Influence scores computed');
-  }
-
-  /**
-   * Compute analytics
-   */
-  computeAnalytics(matrix, sectors) {
-    console.log('Computing analytics...');
-    
-    let totalConnections = 0;
-    let strongestConnection = 0;
-    let totalStrength = 0;
-    let connectionCount = 0;
-    
-    for (const sourceId in matrix) {
-      for (const targetId in matrix[sourceId]) {
-        const cell = matrix[sourceId][targetId];
-        if (cell.strength > 0) {
-          totalConnections++;
-          totalStrength += cell.strength;
-          connectionCount++;
-          
-          if (cell.strength > strongestConnection) {
-            strongestConnection = cell.strength;
-          }
-        }
-      }
-    }
-    
-    const averageStrength = connectionCount > 0
-      ? Math.round(totalStrength / connectionCount)
-      : 0;
-    
-    // Find most influential sector
-    let mostInfluentialSector = null;
-    let maxInfluence = -1;
-    
-    for (const sector of sectors) {
-      if (sector.influence > maxInfluence) {
-        maxInfluence = sector.influence;
-        mostInfluentialSector = sector.id;
-      }
-    }
-    
-    const analytics = {
-      totalConnections,
-      strongestConnection,
-      averageStrength,
-      mostInfluentialSector,
-    };
-    
-    console.log('Analytics:', analytics);
-    return analytics;
-  }
-
-  /**
-   * Generate the complete heatmap data
-   */
-  async generate() {
-    console.log('Starting heatmap generation...');
-    console.log('='.repeat(50));
-    
-    // Fetch repositories
-    await this.fetchRepositories();
-    
-    if (this.repos.length === 0) {
-      console.warn('No repositories found. Exiting.');
-      return null;
-    }
-    
-    // Fetch metadata
-    await this.fetchAllMetadata();
-    
-    // Compute heatmap
-    const matrix = this.computeHeatmap();
-    const sectors = this.computeSectors();
-    this.computeInfluence(matrix, sectors);
-    const analytics = this.computeAnalytics(matrix, sectors);
-    
-    const heatmapData = {
-      matrix,
-      sectors,
-      analytics,
-    };
-    
-    console.log('='.repeat(50));
-    console.log('Heatmap generation complete!');
-    
-    return heatmapData;
-  }
-
-  /**
-   * Save heatmap data to file
-   */
-  saveToFile(heatmapData, outputPath) {
-    console.log(`Saving heatmap to ${outputPath}...`);
-    
-    const dir = path.dirname(outputPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    fs.writeFileSync(outputPath, JSON.stringify(heatmapData, null, 2), 'utf-8');
-    console.log('Heatmap saved successfully!');
+/**
+ * Warn user about missing token
+ */
+function checkToken() {
+  if (!GITHUB_TOKEN) {
+    log('⚠️  WARNING: GITHUB_TOKEN not set. Using unauthenticated API (subject to rate limits)');
+    log('   Set GITHUB_TOKEN environment variable for higher rate limits.');
+  } else {
+    log('✓ Using authenticated GitHub API');
   }
 }
 
-// Main execution
-async function main() {
-  const owner = process.env.OWNER || 'heyns1000';
-  const token = process.env.GITHUB_TOKEN;
+/**
+ * Fetch all repositories for owner with pagination
+ */
+async function fetchRepositories() {
+  log(`Fetching repositories for owner: ${OWNER}...`);
   
-  if (!token) {
-    console.warn('WARNING: GITHUB_TOKEN not provided. Proceeding unauthenticated.');
-    console.warn('You may experience rate limiting. Consider setting GITHUB_TOKEN.');
-  }
-  
-  const generator = new HeatmapGenerator(owner, token);
+  const repos = [];
+  let page = 1;
+  const perPage = 100;
   
   try {
-    const heatmapData = await generator.generate();
+    while (true) {
+      const response = await octokit.repos.listForUser({
+        username: OWNER,
+        per_page: perPage,
+        page: page,
+        type: 'all'
+      });
+      
+      repos.push(...response.data);
+      log(`  Fetched ${repos.length} repositories (page ${page})...`);
+      
+      if (response.data.length < perPage) {
+        break;
+      }
+      page++;
+    }
     
-    if (heatmapData) {
-      const outputPath = path.join(__dirname, '../../data', `heatmap-${owner}.json`);
-      generator.saveToFile(heatmapData, outputPath);
+    log(`✓ Found ${repos.length} repositories`);
+    return repos;
+  } catch (error) {
+    if (error.status === 404) {
+      log(`✗ Owner "${OWNER}" not found on GitHub`);
+      throw new Error(`GitHub user or organization "${OWNER}" not found`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Fetch contributors for a repository
+ */
+async function fetchContributors(repoFullName) {
+  try {
+    const [owner, repo] = repoFullName.split('/');
+    const contributors = [];
+    let page = 1;
+    const perPage = 100;
+    
+    while (contributors.length < 500 && page < 10) { // Limit to prevent excessive API calls
+      const response = await octokit.repos.listContributors({
+        owner,
+        repo,
+        per_page: perPage,
+        page: page
+      });
       
-      console.log('');
-      console.log('✅ Success! Heatmap generated successfully.');
-      console.log(`📊 Total repositories: ${generator.repos.length}`);
-      console.log(`🔗 Total connections: ${heatmapData.analytics.totalConnections}`);
-      console.log(`💪 Strongest connection: ${heatmapData.analytics.strongestConnection}`);
-      console.log(`📈 Average strength: ${heatmapData.analytics.averageStrength}`);
-      console.log(`🏆 Most influential: ${heatmapData.analytics.mostInfluentialSector}`);
+      if (response.data.length === 0) break;
       
-      process.exit(0);
-    } else {
-      console.error('Failed to generate heatmap data');
-      process.exit(1);
+      contributors.push(...response.data.map(c => c.login));
+      
+      if (response.data.length < perPage) break;
+      page++;
+    }
+    
+    return new Set(contributors);
+  } catch (error) {
+    // Repository might be empty or have no contributors
+    return new Set();
+  }
+}
+
+/**
+ * Try to fetch package.json from repository
+ */
+async function fetchPackageJson(repoFullName, defaultBranch) {
+  try {
+    const [owner, repo] = repoFullName.split('/');
+    const response = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: 'package.json',
+      ref: defaultBranch
+    });
+    
+    if (response.data.content) {
+      const content = Buffer.from(response.data.content, 'base64').toString('utf8');
+      return JSON.parse(content);
     }
   } catch (error) {
-    console.error('Error generating heatmap:', error);
+    // package.json not found or not accessible
+    return null;
+  }
+}
+
+/**
+ * Extract dependencies from package.json
+ */
+function extractDependencies(packageJson) {
+  if (!packageJson) return new Set();
+  
+  const deps = new Set();
+  
+  if (packageJson.dependencies) {
+    Object.keys(packageJson.dependencies).forEach(dep => deps.add(dep));
+  }
+  
+  if (packageJson.devDependencies) {
+    Object.keys(packageJson.devDependencies).forEach(dep => deps.add(dep));
+  }
+  
+  return deps;
+}
+
+/**
+ * Fetch repository metadata including contributors, topics, and dependencies
+ */
+async function fetchRepositoryMetadata(repos) {
+  log(`\nFetching metadata for ${repos.length} repositories...`);
+  
+  const metadata = new Map();
+  
+  for (let i = 0; i < repos.length; i++) {
+    const repo = repos[i];
+    log(`  [${i + 1}/${repos.length}] Processing ${repo.full_name}...`);
+    
+    try {
+      // Fetch contributors
+      const contributors = await fetchContributors(repo.full_name);
+      
+      // Topics are already in the repo data
+      const topics = new Set(repo.topics || []);
+      
+      // Try to fetch package.json for dependency info
+      const packageJson = await fetchPackageJson(repo.full_name, repo.default_branch);
+      const dependencies = extractDependencies(packageJson);
+      
+      metadata.set(repo.full_name, {
+        id: repo.full_name,
+        name: repo.name,
+        fullName: repo.full_name,
+        description: repo.description || '',
+        language: repo.language || 'Unknown',
+        contributors,
+        topics,
+        dependencies,
+        stargazersCount: repo.stargazers_count,
+        forksCount: repo.forks_count,
+        openIssuesCount: repo.open_issues_count,
+        createdAt: repo.created_at,
+        updatedAt: repo.updated_at,
+        htmlUrl: repo.html_url
+      });
+    } catch (error) {
+      log(`    ⚠️  Error processing ${repo.full_name}: ${error.message}`);
+      // Continue with partial data
+      metadata.set(repo.full_name, {
+        id: repo.full_name,
+        name: repo.name,
+        fullName: repo.full_name,
+        description: repo.description || '',
+        language: repo.language || 'Unknown',
+        contributors: new Set(),
+        topics: new Set(repo.topics || []),
+        dependencies: new Set(),
+        stargazersCount: repo.stargazers_count,
+        forksCount: repo.forks_count,
+        openIssuesCount: repo.open_issues_count,
+        createdAt: repo.created_at,
+        updatedAt: repo.updated_at,
+        htmlUrl: repo.html_url
+      });
+    }
+  }
+  
+  log(`✓ Metadata collection complete\n`);
+  return metadata;
+}
+
+/**
+ * Calculate intersection size between two sets
+ */
+function setIntersectionSize(setA, setB) {
+  const intersection = new Set([...setA].filter(x => setB.has(x)));
+  return intersection.size;
+}
+
+/**
+ * Check if repoA depends on repoB
+ */
+function hasDependencyLink(metadataA, metadataB) {
+  // Check if repoA's dependencies include repoB's name (or variations)
+  const repoNameB = metadataB.name.toLowerCase();
+  
+  for (const dep of metadataA.dependencies) {
+    if (dep.toLowerCase().includes(repoNameB) || repoNameB.includes(dep.toLowerCase())) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Calculate heatmap strength between two repositories
+ * 
+ * Weighted heuristic:
+ * - Shared contributors: 60%
+ * - Shared topics: 30%
+ * - Dependency link: 10%
+ * 
+ * Returns raw score (not normalized yet)
+ */
+function calculateRawStrength(metadataA, metadataB) {
+  if (metadataA.id === metadataB.id) {
+    return 0; // No self-connections
+  }
+  
+  // Shared contributors
+  const sharedContributors = setIntersectionSize(metadataA.contributors, metadataB.contributors);
+  const maxContributors = Math.max(metadataA.contributors.size, metadataB.contributors.size, 1);
+  const contributorScore = (sharedContributors / maxContributors) * 0.6;
+  
+  // Shared topics
+  const sharedTopics = setIntersectionSize(metadataA.topics, metadataB.topics);
+  const maxTopics = Math.max(metadataA.topics.size, metadataB.topics.size, 1);
+  const topicScore = (sharedTopics / maxTopics) * 0.3;
+  
+  // Dependency link (bidirectional check)
+  const dependencyScore = (hasDependencyLink(metadataA, metadataB) || hasDependencyLink(metadataB, metadataA)) ? 0.1 : 0;
+  
+  return contributorScore + topicScore + dependencyScore;
+}
+
+/**
+ * Build heatmap matrix with normalized strengths
+ */
+function buildHeatmapMatrix(metadata) {
+  log('Computing heatmap matrix...');
+  
+  const repoIds = Array.from(metadata.keys());
+  const rawMatrix = new Map();
+  let maxRawScore = 0;
+  
+  // Calculate raw scores
+  for (const sourceId of repoIds) {
+    rawMatrix.set(sourceId, new Map());
+    
+    for (const targetId of repoIds) {
+      if (sourceId !== targetId) {
+        const rawScore = calculateRawStrength(metadata.get(sourceId), metadata.get(targetId));
+        rawMatrix.get(sourceId).set(targetId, rawScore);
+        maxRawScore = Math.max(maxRawScore, rawScore);
+      }
+    }
+  }
+  
+  log(`  Max raw score: ${maxRawScore.toFixed(4)}`);
+  
+  // Normalize to 0-100 scale
+  const matrix = new Map();
+  
+  for (const sourceId of repoIds) {
+    matrix.set(sourceId, new Map());
+    
+    for (const targetId of repoIds) {
+      if (sourceId !== targetId) {
+        const rawScore = rawMatrix.get(sourceId).get(targetId);
+        const normalizedStrength = maxRawScore > 0 ? (rawScore / maxRawScore) * 100 : 0;
+        
+        // Create HeatmapCell
+        const cell = {
+          sourceId,
+          targetId,
+          strength: Math.round(normalizedStrength * 100) / 100, // Round to 2 decimals
+          type: 'repo-correlation',
+          bidirectional: true,
+          integrationPotential: Math.round(normalizedStrength * 0.8 * 100) / 100, // 80% of strength
+          strategicValue: Math.round(normalizedStrength * 0.9 * 100) / 100, // 90% of strength
+          operationalSynergy: Math.round(normalizedStrength * 0.7 * 100) / 100 // 70% of strength
+        };
+        
+        matrix.get(sourceId).set(targetId, cell);
+      }
+    }
+  }
+  
+  log('✓ Matrix computation complete\n');
+  return matrix;
+}
+
+/**
+ * Calculate influence score for each sector (repository)
+ */
+function calculateInfluenceScores(matrix, metadata) {
+  log('Calculating influence scores...');
+  
+  const influences = new Map();
+  const repoIds = Array.from(metadata.keys());
+  
+  // Sum of strengths across each row
+  for (const sourceId of repoIds) {
+    const row = matrix.get(sourceId);
+    let totalStrength = 0;
+    
+    for (const [targetId, cell] of row) {
+      totalStrength += cell.strength;
+    }
+    
+    influences.set(sourceId, totalStrength);
+  }
+  
+  // Normalize to 0-100
+  const maxInfluence = Math.max(...influences.values(), 1);
+  
+  for (const [sourceId, influence] of influences) {
+    const normalizedInfluence = (influence / maxInfluence) * 100;
+    influences.set(sourceId, Math.round(normalizedInfluence * 100) / 100);
+  }
+  
+  log('✓ Influence scores calculated\n');
+  return influences;
+}
+
+/**
+ * Build sectors array
+ */
+function buildSectors(metadata, influences) {
+  const sectors = [];
+  
+  for (const [id, meta] of metadata) {
+    const emoji = LANGUAGE_EMOJI_MAP[meta.language] || '📦';
+    
+    sectors.push({
+      id,
+      name: meta.name,
+      emoji,
+      influence: influences.get(id) || 0,
+      brandCount: 0, // Repositories don't have brands
+      totalElements: 0 // Repositories don't have elements
+    });
+  }
+  
+  // Sort by influence descending
+  sectors.sort((a, b) => b.influence - a.influence);
+  
+  return sectors;
+}
+
+/**
+ * Calculate analytics
+ */
+function calculateAnalytics(matrix, sectors) {
+  log('Computing analytics...');
+  
+  let totalConnections = 0;
+  let strongestConnection = 0;
+  let totalStrength = 0;
+  let connectionCount = 0;
+  
+  for (const [sourceId, targets] of matrix) {
+    for (const [targetId, cell] of targets) {
+      if (cell.strength > 0) {
+        totalConnections++;
+        strongestConnection = Math.max(strongestConnection, cell.strength);
+        totalStrength += cell.strength;
+        connectionCount++;
+      }
+    }
+  }
+  
+  const averageStrength = connectionCount > 0 ? totalStrength / connectionCount : 0;
+  const mostInfluentialSector = sectors.length > 0 ? sectors[0].id : null;
+  
+  const analytics = {
+    totalConnections,
+    strongestConnection: Math.round(strongestConnection * 100) / 100,
+    averageStrength: Math.round(averageStrength * 100) / 100,
+    mostInfluentialSector
+  };
+  
+  log(`  Total connections: ${totalConnections}`);
+  log(`  Strongest connection: ${analytics.strongestConnection}`);
+  log(`  Average strength: ${analytics.averageStrength}`);
+  log(`  Most influential: ${mostInfluentialSector}`);
+  log('✓ Analytics computed\n');
+  
+  return analytics;
+}
+
+/**
+ * Convert Map-based matrix to plain object for JSON serialization
+ */
+function convertMatrixToObject(matrix) {
+  const obj = {};
+  
+  for (const [sourceId, targets] of matrix) {
+    obj[sourceId] = {};
+    
+    for (const [targetId, cell] of targets) {
+      obj[sourceId][targetId] = cell;
+    }
+  }
+  
+  return obj;
+}
+
+/**
+ * Write heatmap data to file
+ */
+function writeHeatmapData(heatmapData) {
+  log(`Writing output to ${OUTPUT_FILE}...`);
+  
+  // Create data directory if it doesn't exist
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    log(`  Created directory: ${OUTPUT_DIR}`);
+  }
+  
+  // Write JSON file
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(heatmapData, null, 2), 'utf8');
+  
+  log(`✓ Heatmap data written successfully`);
+  log(`  File: ${OUTPUT_FILE}`);
+  log(`  Size: ${(fs.statSync(OUTPUT_FILE).size / 1024).toFixed(2)} KB`);
+}
+
+/**
+ * Main execution
+ */
+async function main() {
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('  Cross-Repository Heatmap Generator');
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('');
+  
+  checkToken();
+  
+  try {
+    // Step 1: Fetch repositories
+    const repos = await fetchRepositories();
+    
+    if (repos.length === 0) {
+      log('⚠️  No repositories found. Nothing to generate.');
+      return;
+    }
+    
+    // Step 2: Fetch metadata for each repository
+    const metadata = await fetchRepositoryMetadata(repos);
+    
+    // Step 3: Build heatmap matrix
+    const matrix = buildHeatmapMatrix(metadata);
+    
+    // Step 4: Calculate influence scores
+    const influences = calculateInfluenceScores(matrix, metadata);
+    
+    // Step 5: Build sectors
+    const sectors = buildSectors(metadata, influences);
+    
+    // Step 6: Calculate analytics
+    const analytics = calculateAnalytics(matrix, sectors);
+    
+    // Step 7: Build final HeatmapData structure
+    const heatmapData = {
+      matrix: convertMatrixToObject(matrix),
+      sectors,
+      analytics,
+      metadata: {
+        owner: OWNER,
+        generatedAt: new Date().toISOString(),
+        repositoryCount: repos.length,
+        generator: 'nexus-nair-heatmap-generator',
+        version: '1.0.0'
+      }
+    };
+    
+    // Step 8: Write to file
+    writeHeatmapData(heatmapData);
+    
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('  ✓ Heatmap generation complete!');
+    console.log('═══════════════════════════════════════════════════════');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('');
+    console.error('═══════════════════════════════════════════════════════');
+    console.error('  ✗ Error generating heatmap');
+    console.error('═══════════════════════════════════════════════════════');
+    console.error('');
+    console.error(`Error: ${error.message}`);
+    
+    if (error.stack) {
+      console.error('\nStack trace:');
+      console.error(error.stack);
+    }
+    
+    if (error.status === 401) {
+      console.error('\nAuthentication failed. Please check your GITHUB_TOKEN.');
+    } else if (error.status === 403) {
+      console.error('\nAPI rate limit exceeded. Please set GITHUB_TOKEN or wait for rate limit reset.');
+    }
+    
     process.exit(1);
   }
 }
 
-// Run if called directly
+// Run the script
 if (require.main === module) {
   main();
 }
 
-module.exports = { HeatmapGenerator };
+module.exports = { main };

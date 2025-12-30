@@ -1,6 +1,42 @@
 {
   "name": "nexus-nair",
   "version": "1.0.0",
+  "description": "NEXUS_NAIR - 5-Layer FCU Full Stack with VaultPay",
+  "main": "src/backend/server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon src/backend/server.js",
+    "client": "cd src/frontend && npm start",
+    "build": "cd src/frontend && npm run build",
+    "start": "node src/backend/server.js",
+    "install-all": "npm install && cd src/frontend && npm install"
+  },
+  "keywords": [
+    "nexus-nair",
+    "vaultpay",
+    "fcu",
+    "pebble-lattice",
+    "frosted-roots"
+  ],
+  "author": "Heyns Schoeman - President of Frosted Roots (Global)",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "stripe": "^14.10.0",
+    "body-parser": "^1.20.2",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   "type": "module",
   "description": "NEXUS_NAIR: 5-Layer FCU Stack with 13,713 brands",
   "main": "src/index.js",
@@ -11,6 +47,7 @@
     "test": "node test/test.js",
     "demo": "node demo.js",
     "generate-heatmap": "node scripts/heatmap/generate_heatmap.cjs"
+    "generate-heatmap": "node scripts/heatmap/generate_heatmap.mjs"
   },
   "keywords": ["nexus", "fcu-stack", "vault-chain", "gorilla-codex", "pulsetrade"],
   "author": "",
