@@ -1,26 +1,35 @@
 {
   "name": "nexus-nair",
   "version": "1.0.0",
+  "type": "module",
   "description": "NEXUS_NAIR - 5-Layer FCU Full Stack with VaultPay",
-  "main": "src/backend/server.js",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "nodemon src/backend/server.js",
-    "client": "cd src/frontend && npm start",
-    "build": "cd src/frontend && npm run build",
-    "start": "node src/backend/server.js",
-    "install-all": "npm install && cd src/frontend && npm install"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node test/test.js",
+    "demo": "node demo.js",
+    "generate-heatmap": "node scripts/heatmap/generate_heatmap.mjs",
+    "server": "node src/backend/server.js"
   },
   "keywords": [
+    "nexus",
+    "fcu-stack",
+    "vault-chain",
+    "gorilla-codex",
+    "pulsetrade",
     "nexus-nair",
     "vaultpay",
-    "fcu",
     "pebble-lattice",
     "frosted-roots"
   ],
   "author": "Heyns Schoeman - President of Frosted Roots (Global)",
-  "license": "PROPRIETARY",
+  "license": "MIT",
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "express": "^4.18.2",
     "pg": "^8.11.3",
     "dotenv": "^16.3.1",
@@ -31,37 +40,16 @@
     "compression": "^1.7.4"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "vite": "^5.0.0",
     "nodemon": "^3.0.2",
     "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  "type": "module",
-  "description": "NEXUS_NAIR: 5-Layer FCU Stack with 13,713 brands",
-  "main": "src/index.js",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "node test/test.js",
-    "demo": "node demo.js",
-    "generate-heatmap": "node scripts/heatmap/generate_heatmap.cjs"
-    "generate-heatmap": "node scripts/heatmap/generate_heatmap.mjs"
-  },
-  "keywords": ["nexus", "fcu-stack", "vault-chain", "gorilla-codex", "pulsetrade"],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@octokit/rest": "^22.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6",
-    "vite": "^5.0.0"
   }
 }

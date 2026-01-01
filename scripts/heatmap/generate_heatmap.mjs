@@ -169,11 +169,11 @@ class HeatmapGenerator {
         
         return deps;
       }
+      return new Set();
     } catch (error) {
       // package.json might not exist or be inaccessible
       return new Set();
     }
-    return new Set();
   }
 
   /**
