@@ -1,0 +1,34 @@
+name = "nexus-nair"
+main = "src/backend/server.js"
+compatibility_date = "2024-01-01"
+
+# R2 Bucket Configuration
+[[r2_buckets]]
+binding = "NEXUS_BUCKET"
+bucket_name = "hotstack-bucket"
+preview_bucket_name = "hotstack-bucket-preview"
+
+# KV Namespace for Pebble Lattice
+[[kv_namespaces]]
+binding = "PEBBLE_LATTICE_KV"
+id = "pebble_lattice_production"
+preview_id = "pebble_lattice_preview"
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+VORTEX_STATUS = "OPEN"
+
+# Routes
+[routes]
+pattern = "nexus-nair.faa.zone/*"
+zone_name = "faa.zone"
+
+# Build Configuration
+[build]
+command = "npm run build"
+watch_dirs = ["src"]
+
+# Workers AI Integration
+[ai]
+binding = "AI"
