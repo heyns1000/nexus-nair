@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -520,9 +521,13 @@ async function main() {
 }
 
 // Run if called directly
-const isMainModule = fileURLToPath(import.meta.url) === process.argv[1];
-if (isMainModule) {
-  main();
+// In ESM, check if this module is the main module by comparing resolved paths
+if (process.argv[1]) {
+  const mainModulePath = fileURLToPath(import.meta.url);
+  const runningScriptPath = path.resolve(process.argv[1]);
+  if (mainModulePath === runningScriptPath) {
+    main();
+  }
 }
 
 export { HeatmapGenerator };
